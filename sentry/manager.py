@@ -113,7 +113,7 @@ class SentryManager(models.Manager):
                 url=url,
                 server_name=server_name,
                 site=site,
-                request_user=request_user
+                request_user=request_user,
                 checksum=checksum,
                 group=group,
                 **kwargs
