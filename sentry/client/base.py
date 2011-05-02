@@ -37,7 +37,7 @@ class SentryClient(object):
         if request:
             if not kwargs.get('data'):
                 kwargs['data'] = {}
-            
+
             if not request.POST and request.raw_post_data:
                 post_data = request.raw_post_data
             else:
@@ -48,6 +48,7 @@ class SentryClient(object):
                 POST=post_data,
                 GET=request.GET,
                 COOKIES=request.COOKIES,
+                REQUEST_USER=request.user,
             ))
 
             if not kwargs.get('url'):
@@ -117,7 +118,7 @@ class SentryClient(object):
 
         for filter_ in get_filters():
             kwargs = filter_(None).process(kwargs) or kwargs
-        
+
         # create ID client-side so that it can be passed to application
         message_id = uuid.uuid4().hex
         kwargs['message_id'] = message_id
@@ -126,17 +127,17 @@ class SentryClient(object):
         kwargs = transform(kwargs)
 
         self.send(**kwargs)
-        
+
         if request:
             # attach the sentry object to the request
             request.sentry = {
                 'id': message_id,
             }
-        
+
         if conf.THRASHING_TIMEOUT and conf.THRASHING_LIMIT:
             # store the last message_id incase we hit thrashing limits
             cache.set('%s:last_message_id' % cache_key, message_id, conf.THRASHING_LIMIT+5)
-        
+
         return message_id
 
     def send_remote(self, url=None, data=None):
@@ -164,7 +165,7 @@ class SentryClient(object):
                     logger.log(kwargs.pop('level', None) or logging.ERROR, kwargs.pop('message', None))
         else:
             from sentry.models import GroupedMessage
-            
+
             return GroupedMessage.objects.from_kwargs(**kwargs)
 
     def create_from_record(self, record, **kwargs):
@@ -174,20 +175,20 @@ class SentryClient(object):
         for k in ('url', 'view', 'request', 'data'):
             if not kwargs.get(k):
                 kwargs[k] = record.__dict__.get(k)
-        
+
         kwargs.update({
             'logger': record.name,
             'level': record.levelno,
             'message': force_unicode(record.msg),
             'server_name': conf.NAME,
         })
-        
+
         # construct the checksum with the unparsed message
         kwargs['checksum'] = construct_checksum(**kwargs)
-        
+
         # save the message with included formatting
         kwargs['message'] = record.getMessage()
-        
+
         # If there's no exception being processed, exc_info may be a 3-tuple of None
         # http://docs.python.org/library/sys.html#sys.exc_info
         if record.exc_info and all(record.exc_info):
@@ -229,13 +230,13 @@ class SentryClient(object):
                 while tb:
                     yield tb.tb_frame
                     tb = tb.tb_next
-            
+
             def contains(iterator, value):
                 for k in iterator:
                     if value.startswith(k):
                         return True
                 return False
-                
+
             # We iterate through each frame looking for an app in INSTALLED_APPS
             # When one is found, we mark it as last "best guess" (best_guess) and then
             # check it against SENTRY_EXCLUDE_PATHS. If it isnt listed, then we
@@ -254,7 +255,7 @@ class SentryClient(object):
                     break
             if best_guess:
                 view = best_guess
-            
+
             if view:
                 kwargs['view'] = view
 
@@ -274,7 +275,7 @@ class SentryClient(object):
                 'template': (origin.reload(), start, end, origin.name),
             })
             kwargs['view'] = origin.loadname
-        
+
         tb_message = '\n'.join(traceback.format_exception(exc_type, exc_value, exc_traceback))
 
         kwargs.setdefault('message', transform(force_unicode(exc_value)))

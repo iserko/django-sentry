@@ -56,22 +56,22 @@ class SentryFilter(object):
     # This must be a string
     default = ''
     show_label = True
-    
+
     def __init__(self, request):
         self.request = request
-    
+
     def is_set(self):
         return bool(self.get_value())
-    
+
     def get_value(self):
         return self.request.GET.get(self.get_query_param(), self.default) or ''
-    
+
     def get_query_param(self):
         return getattr(self, 'query_param', self.column)
 
     def get_widget(self):
         return self.widget(self, self.request)
-    
+
     def get_query_string(self):
         column = self.column
         query_dict = self.request.GET.copy()
@@ -80,24 +80,24 @@ class SentryFilter(object):
         if column in query_dict:
             del query_dict[self.column]
         return '?' + query_dict.urlencode()
-    
+
     def get_choices(self):
         from sentry.models import FilterValue
         return SortedDict((l, l) for l in FilterValue.objects.filter(key=self.column)\
                                                      .values_list('value', flat=True)\
                                                      .order_by('value'))
-    
+
     def get_query_set(self, queryset):
         from sentry.models import MessageIndex
         kwargs = {self.column: self.get_value()}
         if self.column.startswith('data__'):
             return MessageIndex.objects.get_for_queryset(queryset, **kwargs)
         return queryset.filter(**kwargs)
-    
+
     def process(self, data):
         """``self.request`` is not available within this method"""
         return data
-    
+
     def render(self):
         widget = self.get_widget()
         return widget.render(self.get_value())
@@ -147,12 +147,19 @@ class SiteFilter(SentryFilter):
     def get_query_set(self, queryset):
         return queryset.filter(message_set__site=self.get_value()).distinct()
 
+class RequestUserFilter(SentryFilter):
+    label = 'RequestUser'
+    column = 'request_user'
+
+    def get_query_set(self, queryset):
+        return queryset.filter(message_set__request_user=self.get_value()).distinct()
+
 class LevelFilter(SentryFilter):
     label = 'Level'
     column = 'level'
-    
+
     def get_choices(self):
         return SortedDict((str(k), v) for k, v in conf.LOG_LEVELS)
-    
+
     def get_query_set(self, queryset):
         return queryset.filter(level__gte=self.get_value())

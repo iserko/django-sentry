@@ -32,7 +32,7 @@ class ScoreClause(object):
         else:
             # XXX: if we cant do it atomicly let's do it the best we can
             sql = self.group.get_score()
-        
+
         return (sql, [])
 
 class SentryManager(models.Manager):
@@ -46,7 +46,7 @@ class SentryManager(models.Manager):
 
     def from_kwargs(self, **kwargs):
         from sentry.models import Message, GroupedMessage, FilterValue
-        
+
         URL_MAX_LENGTH = Message._meta.get_field_by_name('url')[0].max_length
         now = datetime.datetime.now()
 
@@ -55,6 +55,7 @@ class SentryManager(models.Manager):
         url = kwargs.pop('url', None)
         server_name = kwargs.pop('server_name', conf.CLIENT)
         site = kwargs.pop('site', None)
+        request_user = kwargs.pop('request_user', None)
         data = kwargs.pop('data', {}) or {}
         message_id = kwargs.pop('message_id', None)
 
@@ -112,6 +113,7 @@ class SentryManager(models.Manager):
                 url=url,
                 server_name=server_name,
                 site=site,
+                request_user=request_user
                 checksum=checksum,
                 group=group,
                 **kwargs
@@ -120,6 +122,8 @@ class SentryManager(models.Manager):
                 FilterValue.objects.get_or_create(key='server_name', value=server_name)
             if site:
                 FilterValue.objects.get_or_create(key='site', value=site)
+            if request_user:
+                FilterValue.objects.get_or_create(key='request_user', value=request_user)
             if logger_name:
                 FilterValue.objects.get_or_create(key='logger', value=logger_name)
         except Exception, exc:

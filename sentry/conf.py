@@ -20,6 +20,7 @@ FILTERS = getattr(settings, 'SENTRY_FILTERS', filter(None, (
     'sentry.filters.LevelFilter',
     'sentry.filters.ServerNameFilter',
     'sentry.filters.SiteFilter',
+    'sentry.filters.RequestUserFilter',
 )))
 
 # Sentry allows you to specify an alternative search backend for itself

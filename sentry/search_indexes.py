@@ -45,6 +45,9 @@ if conf.SEARCH_ENGINE:
         def prepare_server(self, instance):
             return [to_unicode(s['server_name']) for s in instance.unique_servers]
 
+        def prepare_request_user(self, instance):
+            return [to_unicode(s['request_user']) for s in instance.unique_users]
+
         def prepare_site(self, instance):
             return [to_unicode(s['site']) for s in instance.unique_sites]
 
